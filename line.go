@@ -26,6 +26,14 @@ var (
 const (
 	// Fields with missing data are represented as "-" (https://en.wikipedia.org/wiki/Common_Log_Format).
 	missingData = "-"
+
+	HostLabel            = "host"
+	UserLabel            = "user"
+	StatusLabel          = "status"
+	SizeLabel            = "size"
+	RequestMethodLabel   = "method"
+	RequestURLLabel      = "url"
+	RequestProtocolLabel = "protocol"
 )
 
 // Request contains information about the method used, the URL and the protocol.
@@ -52,8 +60,8 @@ func newRequest(raw string) (*Request, error) {
 	}, nil
 }
 
-// LoggingLine holds parsed information about a w3c-formatted HTTP access log (https://www.w3.org/Daemon/User/Config/Logging.html#common-logfile-format).
-type LoggingLine struct {
+// LoggingEntry holds parsed information about a w3c-formatted HTTP access log (https://www.w3.org/Daemon/User/Config/Logging.html#common-logfile-format).
+type LoggingEntry struct {
 	RemoteHost    string
 	RemoteLogname string
 	AuthUser      string
@@ -63,7 +71,7 @@ type LoggingLine struct {
 	Bytes         int
 }
 
-func (l *LoggingLine) String() string {
+func (l *LoggingEntry) String() string {
 	loggingDate := missingData
 	if !l.Date.IsZero() {
 		loggingDate = l.Date.String() // TODO: we should use the same format as the one used in reading
@@ -80,8 +88,20 @@ func (l *LoggingLine) String() string {
 	)
 }
 
-// NewLoggingLine creates a LoggingLine from a raw string.
-func NewLoggingLine(raw string) (*LoggingLine, error) {
+// TODO continue
+// Labels returns a map between l
+func (l *LoggingEntry) Labels() map[string]string {
+	return map[string]string{
+		HostLabel:            l.RemoteHost,
+		UserLabel:            l.AuthUser,
+		RequestMethodLabel:   l.Request.Method,
+		RequestURLLabel:      l.Request.URL,
+		RequestProtocolLabel: l.Request.Protocol,
+	}
+}
+
+// NewLoggingEntry creates a LoggingLine from a raw string.
+func NewLoggingEntry(raw string) (*LoggingEntry, error) {
 	entries := lineRegex.FindStringSubmatch(raw)
 	if len(entries) != 8 {
 		return nil, ErrInvalidFormatLine
@@ -90,8 +110,8 @@ func NewLoggingLine(raw string) (*LoggingLine, error) {
 	var err error
 	var date time.Time
 	if entries[4] != missingData {
-		// First check the format "09/May/2018:16:00:39 +0000"
-		date, err = time.Parse("09/May/2018:16:00:39 +0000", entries[4])
+		// First check the format "02/Jan/2006:15:04:05 -0700"
+		date, err = time.Parse("02/Jan/2006:15:04:05 -0700", entries[4])
 		if err != nil {
 			// Otherwise try to use dateparse library that is supposed to support multiple formats except the one above :).
 			date, err = dateparse.ParseAny(entries[4])
@@ -122,7 +142,7 @@ func NewLoggingLine(raw string) (*LoggingLine, error) {
 		}
 	}
 
-	return &LoggingLine{
+	return &LoggingEntry{
 		RemoteHost:    entries[1],
 		RemoteLogname: entries[2],
 		AuthUser:      entries[3],
