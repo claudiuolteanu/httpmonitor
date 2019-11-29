@@ -88,7 +88,6 @@ func main() {
 	<-termChan // Blocks here until interrupted
 
 	// Handle shutdown
-	fmt.Println("*********************************\nShutdown signal received\n*********************************")
 	cancelFunc() // Signal cancellation to context.Context
 	wg.Wait()    // Block here until are workers are done
 }
