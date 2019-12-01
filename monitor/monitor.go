@@ -62,15 +62,26 @@ func (m *Monitor) processLogs() {
 func (m *Monitor) monitorLogs() {
 	defer m.wg.Done()
 
-	query := labels.NewEqualMatcher(RequestMethodLabel, "GET")
+	matcher, err := labels.NewRegexpMatcher(RequestURLLabel, ".*")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	for {
 		select {
 		case <-time.After(10 * time.Second):
-			err := m.db.Query(1571047299, 1576061842, query)
+			now := time.Now().Unix()
+			series, err := m.db.Query(now-int64(10*time.Second), now, matcher)
 
 			if err != nil {
 				fmt.Printf("Failed to sync data: %v", err)
+			}
+
+			stats, err := GroupByLabel(series, RequestURLLabel)
+			if err != nil {
+				fmt.Printf("Failed to sync data: %v", err)
+			} else {
+				fmt.Printf("Stats about %s: %v\n", RequestURLLabel, stats)
 			}
 		case <-m.ctx.Done():
 			fmt.Println("Stop monitoring logs")

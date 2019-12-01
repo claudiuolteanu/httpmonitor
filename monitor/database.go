@@ -1,7 +1,6 @@
 package monitor
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"time"
@@ -49,40 +48,18 @@ func NewLoggingDatabase() (*LoggingDatabase, error) {
 func (m *LoggingDatabase) AddEntry(entry *LoggingEntry) error {
 	labels := labels.FromMap(entry.Labels())
 	m.appender.Add(labels, entry.Date.Unix(), 1.0)
-	fmt.Printf("Adding %v at %d\n", labels, entry.Date.Unix())
 	return m.appender.Commit()
 }
 
 // Query TODO
-func (m *LoggingDatabase) Query(since int64, until int64, matcher labels.Matcher) error {
+func (m *LoggingDatabase) Query(since int64, until int64, matchers ...labels.Matcher) (tsdb.SeriesSet, error) {
 	q, err := m.db.Querier(since, until)
 	if err != nil {
-		return nil
+		return nil, nil
 	}
 	defer q.Close()
 
-	series, err := q.Select(matcher)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("Series %v\n", series)
-	for series.Next() {
-		// Get each Series
-		s := series.At()
-		fmt.Println("Labels:", s.Labels())
-		fmt.Println("Data:")
-		it := s.Iterator()
-		for it.Next() {
-			ts, v := it.At()
-			fmt.Println("ts =", ts, "v =", v)
-		}
-		if err := it.Err(); err != nil {
-			panic(err)
-		}
-	}
-
-	return nil
+	return q.Select(matchers...)
 }
 
 // Cleanup is used to drop all stored data.

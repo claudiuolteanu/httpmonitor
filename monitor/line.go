@@ -28,9 +28,9 @@ const (
 	missingData = "-"
 
 	HostLabel            = "host"
+	LogNameLabel         = "logname"
 	UserLabel            = "user"
 	StatusLabel          = "status"
-	SizeLabel            = "size"
 	RequestMethodLabel   = "method"
 	RequestURLLabel      = "url"
 	RequestProtocolLabel = "protocol"
@@ -93,10 +93,12 @@ func (l *LoggingEntry) String() string {
 func (l *LoggingEntry) Labels() map[string]string {
 	return map[string]string{
 		HostLabel:            l.RemoteHost,
+		LogNameLabel:         l.RemoteLogname,
 		UserLabel:            l.AuthUser,
 		RequestMethodLabel:   l.Request.Method,
 		RequestURLLabel:      l.Request.URL,
 		RequestProtocolLabel: l.Request.Protocol,
+		StatusLabel:          strconv.Itoa(l.Status),
 	}
 }
 
