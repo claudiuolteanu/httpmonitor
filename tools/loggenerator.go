@@ -1,29 +1,29 @@
 package main
 
 import (
-	"fmt"
 	"context"
+	"fmt"
 	"math/rand"
-	"time"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 func generateLog() string {
 	hosts := []string{"127.0.0.1", "172.16.0.1"}
 	lognames := []string{"root@test.com", "user@test.com", "-"}
 	users := []string{"alex", "george", "chris", "-"}
-	methods := []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS", "HEAD"}
-	urls := []string{"/api/user", "/api/user/subscriptions", "/api/analytics"}
+	methods := []string{"GET", "POST", "PUT", "DELETE"}
+	urls := []string{"/user", "/user/subscriptions", "/analytics", "/analytics/reports"}
 	protocols := []string{"HTTP/1.2", "HTTP/2.0"}
-	statusCodes := []int{200, 400, 403, 404, 500, 503}
+	statusCodes := []int{200, 201, 202, 300, 301, 400, 401, 403, 404, 405, 500, 503}
 	size := rand.Intn(5000)
 
-	return fmt.Sprintf("%s %s %s [%s] \"%s %s %s\" %d %d", 
+	return fmt.Sprintf("%s %s %s [%s] \"%s %s %s\" %d %d",
 		hosts[rand.Intn(len(hosts))],
 		lognames[rand.Intn(len(lognames))],
-		users[rand.Intn(len(users))], 
+		users[rand.Intn(len(users))],
 		time.Now().Format("02/Jan/2006:15:04:05 -0700"),
 		methods[rand.Intn(len(methods))],
 		urls[rand.Intn(len(urls))],

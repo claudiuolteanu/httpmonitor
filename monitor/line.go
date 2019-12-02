@@ -14,7 +14,8 @@ import (
 var (
 	// ErrInvalidFormatLine is used to signal that line supplied doesn't match the expected format.
 	ErrInvalidFormatLine = errors.New("invalid format line")
-	lineRegex            = regexp.MustCompile(`^(\S+)\s` + // remote host
+
+	lineRegex = regexp.MustCompile(`^(\S+)\s` + // remote host
 		`([^ ]*)\s` + // remote logname
 		`([^ ]*)\s` + // authuser
 		`(?:-|\[([^\]]*)\])\s` + // date
@@ -27,13 +28,14 @@ const (
 	// Fields with missing data are represented as "-" (https://en.wikipedia.org/wiki/Common_Log_Format).
 	missingData = "-"
 
-	HostLabel            = "host"
-	LogNameLabel         = "logname"
-	UserLabel            = "user"
-	StatusLabel          = "status"
-	RequestMethodLabel   = "method"
-	RequestURLLabel      = "url"
-	RequestProtocolLabel = "protocol"
+	HostLabel              = "host"
+	LogNameLabel           = "logname"
+	UserLabel              = "user"
+	StatusLabel            = "status"
+	RequestMethodLabel     = "method"
+	RequestURLLabel        = "url"
+	RequestURLSectionLabel = "section"
+	RequestProtocolLabel   = "protocol"
 )
 
 // Request contains information about the method used, the URL and the protocol.
@@ -45,6 +47,22 @@ type Request struct {
 
 func (r *Request) String() string {
 	return fmt.Sprintf("%s %s %s", r.Method, r.URL, r.Protocol)
+}
+
+// Section computes what is before the second '/' in the URL's path.
+// For example, the section for "/pages/create" is "/pages".
+func (r *Request) Section() string {
+	firstSeparator := strings.Index(r.URL, "/")
+	if firstSeparator == -1 {
+		return r.URL
+	}
+
+	secondSeparator := strings.Index(r.URL[firstSeparator+1:], "/")
+	if secondSeparator == -1 {
+		return r.URL
+	}
+
+	return r.URL[:firstSeparator+secondSeparator+1]
 }
 
 func newRequest(raw string) (*Request, error) {
@@ -66,7 +84,7 @@ type LoggingEntry struct {
 	RemoteLogname string
 	AuthUser      string
 	Date          time.Time
-	Request       Request
+	Request       *Request
 	Status        int
 	Bytes         int
 }
@@ -92,13 +110,14 @@ func (l *LoggingEntry) String() string {
 // Labels returns a map between l
 func (l *LoggingEntry) Labels() map[string]string {
 	return map[string]string{
-		HostLabel:            l.RemoteHost,
-		LogNameLabel:         l.RemoteLogname,
-		UserLabel:            l.AuthUser,
-		RequestMethodLabel:   l.Request.Method,
-		RequestURLLabel:      l.Request.URL,
-		RequestProtocolLabel: l.Request.Protocol,
-		StatusLabel:          strconv.Itoa(l.Status),
+		HostLabel:              l.RemoteHost,
+		LogNameLabel:           l.RemoteLogname,
+		UserLabel:              l.AuthUser,
+		RequestMethodLabel:     l.Request.Method,
+		RequestURLLabel:        l.Request.URL,
+		RequestProtocolLabel:   l.Request.Protocol,
+		RequestURLSectionLabel: l.Request.Section(),
+		StatusLabel:            strconv.Itoa(l.Status),
 	}
 }
 
@@ -118,7 +137,8 @@ func NewLoggingEntry(raw string) (*LoggingEntry, error) {
 			// Otherwise try to use dateparse library that is supposed to support multiple formats except the one above :).
 			date, err = dateparse.ParseAny(entries[4])
 			if err != nil {
-				return nil, err
+				// TODO wrap the error
+				return nil, ErrInvalidFormatLine
 			}
 		}
 	}
@@ -149,7 +169,7 @@ func NewLoggingEntry(raw string) (*LoggingEntry, error) {
 		RemoteLogname: entries[2],
 		AuthUser:      entries[3],
 		Date:          date,
-		Request:       *request,
+		Request:       request,
 		Status:        status,
 		Bytes:         bytes,
 	}, nil

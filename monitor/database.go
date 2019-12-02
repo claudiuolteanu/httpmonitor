@@ -23,15 +23,15 @@ func NewLoggingDatabase() (*LoggingDatabase, error) {
 		return nil, err
 	}
 
-	db, err := tsdb.Open(tempDir, nil, nil, &tsdb.Options{
+	options := tsdb.Options{
 		WALSegmentSize:         wal.DefaultSegmentSize,
 		RetentionDuration:      60 * 60 * 1000, // 1 hour in milliseconds
 		BlockRanges:            tsdb.ExponentialBlockRanges(int64(2*time.Hour)/1e6, 3, 5),
 		NoLockfile:             false,
 		AllowOverlappingBlocks: false,
 		WALCompression:         false,
-	})
-
+	}
+	db, err := tsdb.Open(tempDir, nil, nil, &options)
 	if err != nil {
 		return nil, err
 	}

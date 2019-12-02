@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/hpcloud/tail"
-	"github.com/prometheus/tsdb/labels"
 )
 
 type Monitor struct {
@@ -62,26 +61,15 @@ func (m *Monitor) processLogs() {
 func (m *Monitor) monitorLogs() {
 	defer m.wg.Done()
 
-	matcher, err := labels.NewRegexpMatcher(RequestURLLabel, ".*")
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	for {
 		select {
 		case <-time.After(10 * time.Second):
-			now := time.Now().Unix()
-			series, err := m.db.Query(now-int64(10*time.Second), now, matcher)
+			now := time.Now()
+			since := now.Add(-10 * time.Second)
 
+			err := printLoggingStats(since.Unix(), now.Unix(), m.db)
 			if err != nil {
-				fmt.Printf("Failed to sync data: %v", err)
-			}
-
-			stats, err := GroupByLabel(series, RequestURLLabel)
-			if err != nil {
-				fmt.Printf("Failed to sync data: %v", err)
-			} else {
-				fmt.Printf("Stats about %s: %v\n", RequestURLLabel, stats)
+				fmt.Printf("Failed to generate stats data: %v", err)
 			}
 		case <-m.ctx.Done():
 			fmt.Println("Stop monitoring logs")
