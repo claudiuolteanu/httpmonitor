@@ -4,9 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/prometheus/tsdb"
 	"github.com/prometheus/tsdb/labels"
+)
+
+const (
+	limit = 3
 )
 
 type Entry struct {
@@ -29,6 +34,75 @@ func mapToPairList(m map[string]float64) EntryList {
 		i++
 	}
 	return p
+}
+
+// create summary stats structure
+type StatsSummary struct {
+	Since           int64
+	Until           int64
+	TopSections     EntryList
+	TopUsers        EntryList
+	RequestMethods  EntryList
+	RequestStatuses EntryList
+}
+
+func NewStatsSummary(since int64, until int64, db *LoggingDatabase) (*StatsSummary, error) {
+	topSections, err := TopHitsByLabel(RequestURLSectionLabel, since, until, limit, db)
+	if err != nil {
+		return nil, err
+	}
+
+	topUsers, err := TopHitsByLabel(UserLabel, since, until, limit, db)
+	if err != nil {
+		return nil, err
+	}
+
+	requestMethods, err := TopHitsByLabel(RequestMethodLabel, since, until, 0, db)
+	if err != nil {
+		return nil, err
+	}
+
+	requestStatuses, err := TopHitsByLabel(StatusLabel, since, until, 0, db)
+	if err != nil {
+		return nil, err
+	}
+
+	return &StatsSummary{
+		Since:           since,
+		Until:           until,
+		TopSections:     topSections,
+		TopUsers:        topUsers,
+		RequestMethods:  requestMethods,
+		RequestStatuses: requestStatuses}, nil
+}
+
+func (s *StatsSummary) String() string {
+	var stats bytes.Buffer
+
+	var total, clientErrors, serverErrors, redirections, successful int
+	for _, e := range s.RequestStatuses {
+		total += int(e.Value)
+		if "200" <= e.Key && e.Key < "300" {
+			successful += int(e.Value)
+		} else if "300" <= e.Key && e.Key < "400" {
+			redirections += int(e.Value)
+		} else if "400" <= e.Key && e.Key < "500" {
+			clientErrors += int(e.Value)
+		} else if e.Key >= "500" {
+			serverErrors += int(e.Value)
+		}
+	}
+
+	stats.WriteString("------------------------------------------------------------------------------------------------------------------------\n")
+	stats.WriteString(fmt.Sprintf("Traffic stats between [%s, %s]:\n", time.Unix(s.Since, 0), time.Unix(s.Until, 0)))
+	stats.WriteString(fmt.Sprintf("- From a total of %d requests, there were %d successful calls, %d redirections, %d client errors and %d server errors\n",
+		total, successful, redirections, clientErrors, serverErrors))
+	stats.WriteString(fmt.Sprintf("- Requests by method: %v\n", s.RequestMethods))
+	stats.WriteString(fmt.Sprintf("- Top %d sections: %v\n", limit, s.TopSections))
+	stats.WriteString(fmt.Sprintf("- First %d users: %v\n", limit, s.TopUsers))
+	stats.WriteString("------------------------------------------------------------------------------------------------------------------------\n")
+
+	return stats.String()
 }
 
 func EntriesByLabel(series tsdb.SeriesSet, label string) (map[string]float64, error) {
@@ -163,34 +237,4 @@ func generateMethodStats(since int64, until int64, db *LoggingDatabase) (string,
 	}
 
 	return methodStats.String(), nil
-}
-
-func printLoggingStats(since int64, until int64, db *LoggingDatabase) error {
-	trafficStats, err := generateTotalTraffic(since, until, db)
-	if err != nil {
-		return nil
-	}
-
-	sectionStats, err := generateSectionStats(since, until, db)
-	if err != nil {
-		return err
-	}
-
-	userStats, err := generateUserStats(since, until, db)
-	if err != nil {
-		return err
-	}
-
-	methodStats, err := generateMethodStats(since, until, db)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("Summary stats from last %d seconds:\n", (until - since))
-	fmt.Printf("- Operations details [%s\n", methodStats)
-	fmt.Printf("- Traffic details [%s]\n", trafficStats)
-	fmt.Printf("- Top 3 sections  [%s]\n", sectionStats)
-	fmt.Printf("- User with biggest number of requests [%s]\n", userStats)
-
-	return nil
 }

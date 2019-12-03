@@ -67,9 +67,11 @@ func (m *Monitor) monitorLogs() {
 			now := time.Now()
 			since := now.Add(-10 * time.Second)
 
-			err := printLoggingStats(since.Unix(), now.Unix(), m.db)
+			stats, err := NewStatsSummary(since.Unix(), now.Unix(), m.db)
 			if err != nil {
 				fmt.Printf("Failed to generate stats data: %v", err)
+			} else {
+				fmt.Print(stats)
 			}
 		case <-m.ctx.Done():
 			fmt.Println("Stop monitoring logs")
