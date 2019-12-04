@@ -1,0 +1,8 @@
+version: "3"
+services:
+  go_tests:
+    image: golang:1.13
+    volumes:
+      - .:$GOPATH/src/httpmonitor/
+    working_dir: $GOPATH/src/httpmonitor/
+    command: go test -v ./...
