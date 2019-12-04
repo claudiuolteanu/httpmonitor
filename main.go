@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -11,8 +13,22 @@ import (
 )
 
 func main() {
-	alerts := []*monitor.Alert{monitor.NewAlert("Traffic from last 2 minutes", 5*time.Second, 2*time.Minute, 3.0, monitor.RequestMethodLabel, ".*")}
-	m, err := monitor.NewMonitor("/Users/claudiu.olteanu/Documents/httpmonitor/test.log", alerts)
+	filename := flag.String("filename", "/tmp/access.log", "path to HTTP access log")
+	threshold := flag.Float64("threshold", 10.0, "number of requests per seconds that needs to be exceeded to generate an alert")
+	flag.Parse()
+
+	alerts := []*monitor.Alert{
+		monitor.NewAlert(
+			fmt.Sprintf("Traffic from last 2 minutes with %f threshold", *threshold),
+			5*time.Second,
+			2*time.Minute,
+			*threshold,
+			monitor.RequestMethodLabel,
+			".*",
+		),
+	}
+
+	m, err := monitor.NewMonitor(*filename, alerts)
 	if err != nil {
 		log.Fatal(err)
 	}
