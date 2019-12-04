@@ -1,3 +1,4 @@
+// The tool is used to generate random w3c-formatted HTTP access logs to STDOUT.
 package main
 
 import (

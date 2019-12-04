@@ -10,13 +10,13 @@ import (
 	"github.com/prometheus/tsdb/wal"
 )
 
-// LoggingDatabase is used to blabla //TODO
+// LoggingDatabase is used to store logging entries into a timeseries format.
 type LoggingDatabase struct {
 	db       *tsdb.DB
 	appender tsdb.Appender
 }
 
-// NewLoggingDatabase is used to create a new logging database
+// NewLoggingDatabase is used to create a new logging database.
 func NewLoggingDatabase() (*LoggingDatabase, error) {
 	tempDir, err := ioutil.TempDir("", "accesslog")
 	if err != nil {
@@ -51,7 +51,7 @@ func (m *LoggingDatabase) AddEntry(entry *LoggingEntry) error {
 	return m.appender.Commit()
 }
 
-// Query TODO
+// Query is used to get all the series between since-until interval that match the the given label matchers.
 func (m *LoggingDatabase) Query(since int64, until int64, matchers ...labels.Matcher) (tsdb.SeriesSet, error) {
 	q, err := m.db.Querier(since, until)
 	if err != nil {

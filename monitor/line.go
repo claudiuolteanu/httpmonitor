@@ -27,15 +27,22 @@ var (
 const (
 	// Fields with missing data are represented as "-" (https://en.wikipedia.org/wiki/Common_Log_Format).
 	missingData = "-"
-
-	HostLabel              = "host"
-	LogNameLabel           = "logname"
-	UserLabel              = "user"
-	StatusLabel            = "status"
-	RequestMethodLabel     = "method"
-	RequestURLLabel        = "url"
+	// HostLabel is the label used to store hosts into dabatase.
+	HostLabel = "host"
+	// LogNameLabel is the label used to store lognames into dabatase.
+	LogNameLabel = "logname"
+	// UserLabel is the label used to store auth users into dabatase.
+	UserLabel = "user"
+	// StatusLabel is the label used to store requests' statuses into dabatase.
+	StatusLabel = "status"
+	// RequestMethodLabel is the label used to store requests' methods into dabatase.
+	RequestMethodLabel = "method"
+	// RequestURLLabel is the label used to store requests' URLs into dabatase.
+	RequestURLLabel = "url"
+	// RequestURLSectionLabel is the label used to store requests' sections into dabatase.
 	RequestURLSectionLabel = "section"
-	RequestProtocolLabel   = "protocol"
+	// RequestProtocolLabel is the label used to store requests' protocols into dabatase.
+	RequestProtocolLabel = "protocol"
 )
 
 // Request contains information about the method used, the URL and the protocol.
@@ -65,7 +72,8 @@ func (r *Request) Section() string {
 	return r.URL[:firstSeparator+secondSeparator+1]
 }
 
-func newRequest(raw string) (*Request, error) {
+// NewRequest is used to create a request from a raw string.
+func NewRequest(raw string) (*Request, error) {
 	entries := strings.Split(raw, " ")
 	if len(entries) != 3 {
 		return nil, ErrInvalidFormatLine
@@ -106,8 +114,7 @@ func (l *LoggingEntry) String() string {
 	)
 }
 
-// TODO continue
-// Labels returns a map between l
+// Labels returns a map between labels used to store into database and their logging values.
 func (l *LoggingEntry) Labels() map[string]string {
 	return map[string]string{
 		HostLabel:              l.RemoteHost,
@@ -143,7 +150,7 @@ func NewLoggingEntry(raw string) (*LoggingEntry, error) {
 		}
 	}
 
-	request, err := newRequest(entries[5])
+	request, err := NewRequest(entries[5])
 	if err != nil {
 		return nil, err
 	}

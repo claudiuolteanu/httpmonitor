@@ -13,11 +13,13 @@ const (
 	limit = 3
 )
 
+// Entry represents a point from a timeseries set.
 type Entry struct {
 	Key   string
 	Value float64
 }
 
+// EntryList represents a list of timeseries points.
 type EntryList []Entry
 
 func (p EntryList) Len() int           { return len(p) }
@@ -35,7 +37,8 @@ func mapToEntryList(m map[string]float64) EntryList {
 	return p
 }
 
-func getEntries(label string, pattern string, since int64, until int64, db *LoggingDatabase) (EntryList, error) {
+// GetEntries can be used to collect all entries from a given label that match the pattern.
+func GetEntries(label string, pattern string, since int64, until int64, db *LoggingDatabase) (EntryList, error) {
 	// Collect the data
 	matcher, err := labels.NewRegexpMatcher(label, pattern)
 	if err != nil {
@@ -70,8 +73,9 @@ func getEntries(label string, pattern string, since int64, until int64, db *Logg
 	return mapToEntryList(m), nil
 }
 
-func TopHitsByLabel(label string, since int64, until int64, limit int, db *LoggingDatabase) (EntryList, error) {
-	entries, err := getEntries(label, ".*", since, until, db)
+// TopEntries can be used to collect top entries from a given label that match the pattern.
+func TopEntries(label string, since int64, until int64, limit int, db *LoggingDatabase) (EntryList, error) {
+	entries, err := GetEntries(label, ".*", since, until, db)
 	if err != nil {
 		return nil, err
 	}
@@ -85,33 +89,35 @@ func TopHitsByLabel(label string, since int64, until int64, limit int, db *Loggi
 	return entries, nil
 }
 
-// create summary stats structure
+// StatsSummary is used to represent traffic statistics from a given interval.
 type StatsSummary struct {
 	Since           int64
 	Until           int64
+	Size            int64
 	TopSections     EntryList
 	TopUsers        EntryList
 	RequestMethods  EntryList
 	RequestStatuses EntryList
 }
 
+// NewStatsSummary is used to generate traffic statistics from a given interval.
 func NewStatsSummary(since int64, until int64, db *LoggingDatabase) (*StatsSummary, error) {
-	topSections, err := TopHitsByLabel(RequestURLSectionLabel, since, until, limit, db)
+	topSections, err := TopEntries(RequestURLSectionLabel, since, until, limit, db)
 	if err != nil {
 		return nil, err
 	}
 
-	topUsers, err := TopHitsByLabel(UserLabel, since, until, limit, db)
+	topUsers, err := TopEntries(UserLabel, since, until, limit, db)
 	if err != nil {
 		return nil, err
 	}
 
-	requestMethods, err := TopHitsByLabel(RequestMethodLabel, since, until, 0, db)
+	requestMethods, err := TopEntries(RequestMethodLabel, since, until, 0, db)
 	if err != nil {
 		return nil, err
 	}
 
-	requestStatuses, err := TopHitsByLabel(StatusLabel, since, until, 0, db)
+	requestStatuses, err := TopEntries(StatusLabel, since, until, 0, db)
 	if err != nil {
 		return nil, err
 	}

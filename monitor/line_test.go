@@ -78,13 +78,14 @@ func TestLoggingEntryInvalidSize(t *testing.T) {
 func TestLabels(t *testing.T) {
 	entry := &LoggingEntry{RemoteHost: "127.0.0.1", RemoteLogname: "-", AuthUser: "james", Date: time.Now(), Request: &Request{Method: "GET", URL: "/report", Protocol: "HTTP/1.0"}, Status: 200, Bytes: 123}
 	expectedLabels := map[string]string{
-		HostLabel:            entry.RemoteHost,
-		LogNameLabel:         entry.RemoteLogname,
-		UserLabel:            entry.AuthUser,
-		RequestMethodLabel:   entry.Request.Method,
-		RequestURLLabel:      entry.Request.URL,
-		RequestProtocolLabel: entry.Request.Protocol,
-		StatusLabel:          strconv.Itoa(entry.Status),
+		HostLabel:              entry.RemoteHost,
+		LogNameLabel:           entry.RemoteLogname,
+		UserLabel:              entry.AuthUser,
+		RequestMethodLabel:     entry.Request.Method,
+		RequestURLLabel:        entry.Request.URL,
+		RequestProtocolLabel:   entry.Request.Protocol,
+		RequestURLSectionLabel: entry.Request.Section(),
+		StatusLabel:            strconv.Itoa(entry.Status),
 	}
 
 	require.True(t, reflect.DeepEqual(expectedLabels, entry.Labels()), "Unexpected labels")
