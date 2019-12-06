@@ -81,17 +81,6 @@ func (ld *LoggingDatabase) AddEntry(entry *LoggingEntry) error {
 	return ld.appender.Commit()
 }
 
-// Query is used to get all the series between since-until interval that match the the given label matchers.
-func (ld *LoggingDatabase) Query(since int64, until int64, matchers ...labels.Matcher) (tsdb.SeriesSet, error) {
-	q, err := ld.db.Querier(since, until)
-	if err != nil {
-		return nil, nil
-	}
-	defer q.Close()
-
-	return q.Select(matchers...)
-}
-
 // GetEntries can be used to collect all entries from a given label that match the pattern.
 func (ld *LoggingDatabase) GetEntries(label string, pattern string, since int64, until int64) (EntryList, error) {
 	// Collect the data
