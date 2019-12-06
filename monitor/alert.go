@@ -58,7 +58,7 @@ func (a *Alert) Run(ctx context.Context, wg *sync.WaitGroup, db *LoggingDatabase
 			since := now.Add(-a.dataInterval)
 
 			// Get the entries from last dataInterval seconds that match the pattern.
-			stats, err := GetEntries(a.label, a.pattern, since.Unix(), now.Unix(), db)
+			stats, err := db.GetEntries(a.label, a.pattern, since.Unix(), now.Unix())
 			if err != nil {
 				fmt.Printf("Failed to generate stats data: %v\n", err)
 				return

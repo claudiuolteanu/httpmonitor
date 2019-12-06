@@ -24,7 +24,7 @@ func main() {
 			2*time.Minute,
 			*threshold,
 			monitor.RequestMethodLabel,
-			".*",
+			monitor.AllEntriesPattern,
 		),
 	}
 
