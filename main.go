@@ -37,7 +37,19 @@ func main() {
 	termChan := make(chan os.Signal)
 	signal.Notify(termChan, syscall.SIGINT, syscall.SIGTERM)
 
-	m.Run()
+	// Start the monitoring
+	go func() {
+		err := m.Run()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}()
+
 	<-termChan // Blocks here until interrupted
-	m.Stop()
+
+	// Stop the monitoring
+	err = m.Stop()
+	if err != nil {
+		log.Fatal(err)
+	}
 }

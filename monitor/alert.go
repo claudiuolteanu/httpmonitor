@@ -3,7 +3,6 @@ package monitor
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 )
 
@@ -82,21 +81,18 @@ func (a *Alert) CheckStatus(db *LoggingDatabase) error {
 }
 
 // Run is used to monitor and raise an alert. The method is blocking.
-func (a *Alert) Run(ctx context.Context, wg *sync.WaitGroup, db *LoggingDatabase) {
-	defer wg.Done()
-
+func (a *Alert) Run(ctx context.Context, db *LoggingDatabase) error {
 	for {
 		select {
 		case <-time.After(a.checkingInterval):
 			err := a.CheckStatus(db)
 			if err != nil {
-				fmt.Printf("Failed to check alert status: %v", err)
-				return
+				return err
 			}
 
 		case <-ctx.Done():
 			fmt.Printf("Stop alert %s\n", a.name)
-			return
+			return nil
 		}
 	}
 }

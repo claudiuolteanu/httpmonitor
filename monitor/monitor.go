@@ -3,17 +3,16 @@ package monitor
 import (
 	"context"
 	"fmt"
-	"log"
-	"sync"
 	"time"
 
 	"github.com/hpcloud/tail"
+	"golang.org/x/sync/errgroup"
 )
 
 // Monitor stores information neccessary to monitor the activity from a logging file.
 type Monitor struct {
 	db         *LoggingDatabase
-	wg         *sync.WaitGroup
+	errg       *errgroup.Group
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 	filename   string
@@ -27,45 +26,42 @@ func NewMonitor(filename string, alerts []*Alert) (*Monitor, error) {
 		return nil, err
 	}
 
-	wg := &sync.WaitGroup{}
 	ctx, cancelFunc := context.WithCancel(context.Background())
+	errg, ctx := errgroup.WithContext(ctx)
 
-	return &Monitor{db: db, wg: wg, filename: filename, ctx: ctx, cancelFunc: cancelFunc, alerts: alerts}, nil
+	return &Monitor{db: db, errg: errg, filename: filename, ctx: ctx, cancelFunc: cancelFunc, alerts: alerts}, nil
 }
 
 // processLogs reads each line from the file, parses it and inserts it into the database.
-func (m *Monitor) processLogs() {
-	defer m.wg.Done()
-
+func (m *Monitor) processLogs() error {
 	t, err := tail.TailFile(m.filename, tail.Config{Follow: true})
 	if err != nil {
-		// TODO return error (use channel errors)
-		log.Fatal(err)
+		return err
 	}
 
 	for {
 		select {
 		case line := <-t.Lines:
 			entry, err := NewLoggingEntry(line.Text)
+			// Skip invalid entries but don't stop the whole process.
 			if err != nil {
-				fmt.Println(err)
-			} else {
-				err = m.db.AddEntry(entry)
-				if err != nil {
-					fmt.Println(err)
-				}
+				fmt.Printf("Failed to parse one entry %v\n", err)
+				continue
+			}
+
+			err = m.db.AddEntry(entry)
+			if err != nil {
+				return err
 			}
 		case <-m.ctx.Done():
 			fmt.Println("Stop processing logs")
-			return
+			return nil
 		}
 	}
 }
 
 // monitorLogs collects stats from last 10 seconds and prints a summary.
-func (m *Monitor) monitorLogs() {
-	defer m.wg.Done()
-
+func (m *Monitor) monitorLogs() error {
 	for {
 		select {
 		case <-time.After(10 * time.Second):
@@ -74,36 +70,37 @@ func (m *Monitor) monitorLogs() {
 
 			stats, err := NewStatsSummary(since.Unix(), now.Unix(), m.db)
 			if err != nil {
-				fmt.Printf("Failed to generate stats data: %v\n", err)
-			} else {
-				fmt.Print(stats)
+				return err
 			}
+
+			fmt.Println(stats)
 		case <-m.ctx.Done():
 			fmt.Println("Stop monitoring logs")
-			return
+			return nil
 		}
 	}
 }
 
-// Run is used to start the monitoring system in background.
+// Run is used to start the monitoring system.
 // It processes the logs and display statistics about the traffic generated in the past 10 seconds.
 // Besides that, it also starts to monitor the activiy for configured alerts.
 // In order to stop the monitoring, the Stop method should be called.
-func (m *Monitor) Run() {
-	m.wg.Add(2)
-	go m.processLogs()
-	go m.monitorLogs()
+func (m *Monitor) Run() error {
+	m.errg.Go(m.processLogs)
+	m.errg.Go(m.monitorLogs)
 
 	for _, a := range m.alerts {
-		m.wg.Add(1)
-		go a.Run(m.ctx, m.wg, m.db)
+		m.errg.Go(func() error {
+			return a.Run(m.ctx, m.db)
+		})
 	}
+
+	return m.errg.Wait()
 }
 
 // Stop is used to stop the monitoring and to do the cleanup.
 func (m *Monitor) Stop() error {
 	m.cancelFunc()
-	m.wg.Wait()
 
 	return m.db.Cleanup()
 }
