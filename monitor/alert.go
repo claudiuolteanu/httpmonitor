@@ -43,8 +43,8 @@ func NewAlert(name string, checkingInterval time.Duration, dataInterval time.Dur
 	}
 }
 
-// CheckStatus is update the status of the alert and to notify in case of changes.
-// The data from last "dataInterval" seconds and stored under mentioned "label" that is matching the "pattern", is
+// CheckStatus is used to update the status of the alert and to notify in case of changes.
+// The data from last "dataInterval" seconds and stored under the specified "label" which is matching the "pattern", is
 // aggregated each "checkingInterval" seconds. If the result exceeds the "threshold" for the first time, the state of
 // alert is changed to Critical and a logging message is displayed. When the result goes below the "threshold" the
 // state of alert is moved back to OK and a new logging message is displayed.
@@ -81,7 +81,7 @@ func (a *Alert) CheckStatus(db *LoggingDatabase) error {
 	return nil
 }
 
-// Run is used to monitor and raise an alert.
+// Run is used to monitor and raise an alert. The method is blocking.
 func (a *Alert) Run(ctx context.Context, wg *sync.WaitGroup, db *LoggingDatabase) {
 	defer wg.Done()
 

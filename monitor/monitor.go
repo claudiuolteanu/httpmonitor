@@ -85,7 +85,7 @@ func (m *Monitor) monitorLogs() {
 	}
 }
 
-// Run is used to start the monitoring system.
+// Run is used to start the monitoring system in background.
 // It processes the logs and display statistics about the traffic generated in the past 10 seconds.
 // Besides that, it also starts to monitor the activiy for configured alerts.
 // In order to stop the monitoring, the Stop method should be called.

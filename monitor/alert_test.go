@@ -32,17 +32,12 @@ func (suite *AlertTestSuite) TestAlertTriggered() {
 	t := suite.T()
 
 	alert := NewAlert("test", time.Second, 5*time.Second, 1.0, HostLabel, AllEntriesPattern)
-	entries := 10 // double the elements to be sure that the threshold is reached
 
-	for i := 0; i < entries; i++ {
-		now := time.Now()
-		entry := &LoggingEntry{RemoteHost: fmt.Sprintf("127.0.0.%d", i), RemoteLogname: "-", AuthUser: "james", Date: now, Request: &Request{Method: "GET", URL: "/report/user", Protocol: "HTTP/1.0"}, Status: 200, Bytes: 123}
-		err := suite.db.AddEntry(entry)
-		require.Nil(t, err, "No error should be returned while adding an entry.")
-	}
+	err := suite.addEntries(10) // double the elements to be sure that the threshold is reached
+	require.Nil(t, err, "No error should be returned while adding entries.")
 
 	require.Equal(t, OK, alert.status, "The initial status must be ok.")
-	err := alert.CheckStatus(suite.db)
+	err = alert.CheckStatus(suite.db)
 	require.Nil(t, err, "No error should be returned while checking the status.")
 	require.Equal(t, Critical, alert.status, "The final status must be critical.")
 }
@@ -51,17 +46,12 @@ func (suite *AlertTestSuite) TestAlertNotTriggered() {
 	t := suite.T()
 
 	alert := NewAlert("test", time.Second, 5*time.Second, 10.0, HostLabel, AllEntriesPattern)
-	entries := 1
 
-	for i := 0; i < entries; i++ {
-		now := time.Now()
-		entry := &LoggingEntry{RemoteHost: fmt.Sprintf("127.0.0.%d", i), RemoteLogname: "-", AuthUser: "james", Date: now, Request: &Request{Method: "GET", URL: "/report/user", Protocol: "HTTP/1.0"}, Status: 200, Bytes: 123}
-		err := suite.db.AddEntry(entry)
-		require.Nil(t, err, "No error should be returned while adding an entry.")
-	}
+	err := suite.addEntries(1)
+	require.Nil(t, err, "No error should be returned while adding entries.")
 
 	require.Equal(t, OK, alert.status, "The initial status must be ok.")
-	err := alert.CheckStatus(suite.db)
+	err = alert.CheckStatus(suite.db)
 	require.Nil(t, err, "No error should be returned while checking the status.")
 	require.Equal(t, OK, alert.status, "The final status must be ok.")
 }
@@ -71,17 +61,12 @@ func (suite *AlertTestSuite) TestAlertBackToNormal() {
 
 	alert := NewAlert("test", time.Second, 5*time.Second, 10.0, HostLabel, AllEntriesPattern)
 	alert.status = Critical // Manually change the state of the alert to critical
-	entries := 1
 
-	for i := 0; i < entries; i++ {
-		now := time.Now()
-		entry := &LoggingEntry{RemoteHost: fmt.Sprintf("127.0.0.%d", i), RemoteLogname: "-", AuthUser: "james", Date: now, Request: &Request{Method: "GET", URL: "/report/user", Protocol: "HTTP/1.0"}, Status: 200, Bytes: 123}
-		err := suite.db.AddEntry(entry)
-		require.Nil(t, err, "No error should be returned while adding an entry.")
-	}
+	err := suite.addEntries(1)
+	require.Nil(t, err, "No error should be returned while adding entries.")
 
 	require.Equal(t, Critical, alert.status, "The initial status must be critical.")
-	err := alert.CheckStatus(suite.db)
+	err = alert.CheckStatus(suite.db)
 	require.Nil(t, err, "No error should be returned while checking the status.")
 	require.Equal(t, OK, alert.status, "The final status must be ok.")
 }
@@ -91,19 +76,35 @@ func (suite *AlertTestSuite) TestAlertRemainsCritical() {
 
 	alert := NewAlert("test", time.Second, 5*time.Second, 1.0, HostLabel, AllEntriesPattern)
 	alert.status = Critical // Manually change the state of the alert to critical
-	entries := 10           // double the elements to be sure that the threshold is reached
 
-	for i := 0; i < entries; i++ {
-		now := time.Now()
-		entry := &LoggingEntry{RemoteHost: fmt.Sprintf("127.0.0.%d", i), RemoteLogname: "-", AuthUser: "james", Date: now, Request: &Request{Method: "GET", URL: "/report/user", Protocol: "HTTP/1.0"}, Status: 200, Bytes: 123}
-		err := suite.db.AddEntry(entry)
-		require.Nil(t, err, "No error should be returned while adding an entry.")
-	}
+	err := suite.addEntries(10) // double the elements to be sure that the threshold is reached
+	require.Nil(t, err, "No error should be returned while adding entries.")
 
 	require.Equal(t, Critical, alert.status, "The initial status must be critical.")
-	err := alert.CheckStatus(suite.db)
+	err = alert.CheckStatus(suite.db)
 	require.Nil(t, err, "No error should be returned while checking the status.")
 	require.Equal(t, Critical, alert.status, "The final status must be critical.")
+}
+
+func (suite *AlertTestSuite) addEntries(count int) error {
+	for i := 0; i < count; i++ {
+		now := time.Now()
+		entry := &LoggingEntry{
+			RemoteHost:    fmt.Sprintf("127.0.0.%d", i),
+			RemoteLogname: "-",
+			AuthUser:      "james",
+			Date:          now,
+			Request:       &Request{Method: "GET", URL: "/report/user", Protocol: "HTTP/1.0"},
+			Status:        200,
+			Bytes:         123,
+		}
+		err := suite.db.AddEntry(entry)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func TestAlertTestSuite(t *testing.T) {

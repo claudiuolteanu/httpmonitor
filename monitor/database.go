@@ -77,7 +77,11 @@ func NewLoggingDatabase() (*LoggingDatabase, error) {
 // AddEntry adds a new entry to database.
 func (ld *LoggingDatabase) AddEntry(entry *LoggingEntry) error {
 	labels := labels.FromMap(entry.Labels())
-	ld.appender.Add(labels, entry.Date.Unix(), 1.0)
+	_, err := ld.appender.Add(labels, entry.Date.Unix(), 1.0)
+	if err != nil {
+		return err
+	}
+
 	return ld.appender.Commit()
 }
 

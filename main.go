@@ -14,7 +14,7 @@ import (
 
 func main() {
 	filename := flag.String("filename", "/tmp/access.log", "path to HTTP access log")
-	threshold := flag.Float64("threshold", 10.0, "number of requests per seconds that needs to be exceeded to generate an alert")
+	threshold := flag.Float64("threshold", 10.0, "number of requests per second that needs to be exceeded to generate an alert")
 	flag.Parse()
 
 	alerts := []*monitor.Alert{
