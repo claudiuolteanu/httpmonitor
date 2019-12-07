@@ -5,4 +5,4 @@ services:
     volumes:
       - .:$GOPATH/src/httpmonitor/
     working_dir: $GOPATH/src/httpmonitor/
-    command: bash -c "go run main.go --threshold=5 & go run tools/loggenerator.go > /tmp/access.log"
+    command: bash -c "go run main.go --threshold=2 & go run tools/loggenerator.go > /tmp/access.log"

@@ -68,12 +68,12 @@ func (a *Alert) CheckStatus(db *LoggingDatabase) error {
 	if average >= a.threshold {
 		if a.status == OK {
 			a.status = Critical
-			fmt.Printf("High traffic generated an alert - hits = %f, triggered at %s\n", average, now.Format("2019-12-03 23:48:12 +0200 EET"))
+			fmt.Printf("High traffic generated an alert - hits = %f, triggered at %s\n", average, now.Format("2006-01-02 15:04:05 -0700 MST"))
 		}
 	} else {
 		if a.status == Critical {
 			a.status = OK
-			fmt.Printf("The traffic returned back to normal - hits = %f, at %s\n", average, now.Format("2019-12-03 23:48:12 +0200 EET"))
+			fmt.Printf("The traffic returned back to normal - hits = %f, at %s\n", average, now.Format("2006-01-02 15:04:05 -0700 MST"))
 		}
 	}
 
